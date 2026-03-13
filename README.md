@@ -62,6 +62,24 @@ python manage.py runserver
 - `ShareJet/` - Django project settings
 - `templates/` - HTML templates
 
+## Deployment on Render
+
+### Build Command:
+```bash
+pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput
+```
+
+### Start Command:
+```bash
+gunicorn ShareJet.asgi:application
+```
+
+### Environment Variables on Render:
+Add these in Render dashboard:
+- `DEBUG`: False
+- `ALLOWED_HOSTS`: your-render-subdomain.onrender.com
+- `SECRET_KEY`: Generate a random secret key
+
 ## License
 
 MIT
