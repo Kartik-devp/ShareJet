@@ -71,7 +71,7 @@ pip install -r requirements.txt && python manage.py migrate --noinput && python 
 
 ### Start Command:
 ```bash
-gunicorn ShareJet.asgi:application
+uvicorn ShareJet.asgi:application --host 0.0.0.0 --port 10000
 ```
 
 ### Environment Variables on Render:
