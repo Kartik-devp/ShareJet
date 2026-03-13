@@ -66,7 +66,7 @@ python manage.py runserver
 
 ### Build Command:
 ```bash
-pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput
+pip install -r requirements.txt && python manage.py migrate --noinput && python manage.py collectstatic --noinput
 ```
 
 ### Start Command:
