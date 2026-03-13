@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="flex flex-col items-center justify-center text-center py-20 lg:py-32">
+    <h1 class="text-5xl md:text-6xl font-extrabold text-gray-900 tracking-tight mb-4">
+        Share files <span class="text-brand">Instantly</span> & <span class="text-brand">Securely</span>
+    </h1>
+    <p class="text-xl text-gray-600 mb-10 max-w-2xl">
+        ShareJet allows you to securely send files of any size to anyone, anywhere. Just drag, drop, and share with a unique 6-digit code or link.
+    </p>
+    
+    <div class="flex flex-col sm:flex-row gap-4">
+        <a href="{% url 'send' %}" class="px-8 py-4 bg-brand text-white text-lg font-semibold rounded-full hover:bg-brand-dark transition-all transform hover:-translate-y-1 shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            Send Files
+        </a>
+        <a href="{% url 'receive' %}" class="px-8 py-4 bg-white text-gray-800 border-2 border-gray-200 text-lg font-semibold rounded-full hover:border-brand hover:text-brand transition-all flex items-center justify-center gap-2">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            Receive Files
+        </a>
+    </div>
+
+    <!-- Feature Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24">
+        <div class="p-6 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div class="w-12 h-12 bg-brand-light/20 text-brand rounded-xl flex items-center justify-center mb-4 mx-auto">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </div>
+            <h3 class="text-xl font-semibold mb-2">Secure Transfer</h3>
+            <p class="text-gray-500">Your files are encrypted and password protection is available for sensitive data.</p>
+        </div>
+        <div class="p-6 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div class="w-12 h-12 bg-blue-100 text-blue-500 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <h3 class="text-xl font-semibold mb-2">Lightning Fast</h3>
+            <p class="text-gray-500">Optimized transfer speeds. Same-WiFi devices transfer even faster directly.</p>
+        </div>
+        <div class="p-6 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div class="w-12 h-12 bg-purple-100 text-purple-500 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+            </div>
+            <h3 class="text-xl font-semibold mb-2">Auto Expiry</h3>
+            <p class="text-gray-500">Files automatically self-destruct after your chosen expiry time.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

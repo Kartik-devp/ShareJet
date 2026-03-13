@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}Send Files - ShareJet{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto w-full mt-10">
+    <div class="bg-white rounded-3xl shadow-lg border border-gray-100 p-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Share Files</h2>
+        
+        <!-- Upload Area -->
+        <div id="dropzone" class="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center hover:border-brand hover:bg-brand-light/5 transition-colors cursor-pointer relative">
+            <input type="file" id="fileInput" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+            <div class="pointer-events-none">
+                <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                <p class="text-xl text-gray-600 font-medium">Drag & drop files here</p>
+                <p class="text-gray-400 mt-2">or click to browse from your device</p>
+            </div>
+        </div>
+        
+        <!-- Selected Files List -->
+        <div id="fileList" class="mt-6 space-y-3 hidden">
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Selected Files</h3>
+            <!-- File items will be inserted here by JS -->
+        </div>
+
+        <!-- Options -->
+        <div id="optionsPanel" class="mt-8 space-y-4 hidden">
+            <div class="flex gap-4">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Expiry Time</label>
+                    <select id="expiryTime" class="w-full border-gray-300 rounded-xl shadow-sm focus:border-brand focus:ring-brand py-2 px-3 bg-gray-50">
+                        <option value="10">10 Minutes</option>
+                        <option value="60" selected>1 Hour</option>
+                        <option value="1440">24 Hours</option>
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password (Optional)</label>
+                    <input type="password" id="password" placeholder="Protect with password" class="w-full border border-gray-300 rounded-xl shadow-sm focus:border-brand focus:ring-brand py-2 px-3 bg-gray-50">
+                </div>
+            </div>
+            
+            <button id="uploadBtn" class="w-full bg-brand text-white font-bold text-lg rounded-xl py-4 shadow-md hover:bg-brand-dark hover:shadow-lg transition-all mt-4 flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                Generate Transfer Code
+            </button>
+        </div>
+
+        <!-- Progress & Result Panel -->
+        <div id="resultPanel" class="mt-8 hidden text-center">
+            <h3 class="text-lg font-medium text-gray-800 mb-4" id="statusText">Uploading files...</h3>
+            
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-6 hidden" id="progressContainer">
+                <div class="bg-brand h-2.5 rounded-full" id="progressBar" style="width: 0%"></div>
+            </div>
+
+            <div id="codeDisplay" class="hidden">
+                <p class="text-gray-500 mb-2">Share this code with the receiver:</p>
+                <div class="bg-gray-100 border border-gray-200 rounded-2xl p-6 mb-6">
+                    <span class="text-6xl font-black text-brand tracking-widest" id="transferCode">------</span>
+                </div>
+                <p class="text-sm text-gray-400">Code expires in <span id="displayExpiry">1 hour</span>.</p>
+                <div class="mt-6 flex gap-4 justify-center">
+                    <button id="copyCodeBtn" class="px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors">Copy Code</button>
+                    <a href="/" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Send More</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const dropzone = document.getElementById('dropzone');
+    const fileList = document.getElementById('fileList');
+    const optionsPanel = document.getElementById('optionsPanel');
+    const uploadBtn = document.getElementById('uploadBtn');
+    
+    let selectedFiles = [];
+
+    fileInput.addEventListener('change', (e) => {
+        handleFiles(e.target.files);
+    });
+
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('border-brand', 'bg-brand-light/5');
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('border-brand', 'bg-brand-light/5');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('border-brand', 'bg-brand-light/5');
+        handleFiles(e.dataTransfer.files);
+    });
+
+    function handleFiles(files) {
+        if(files.length > 0) {
+            selectedFiles = Array.from(files);
+            renderFileList();
+            optionsPanel.classList.remove('hidden');
+        }
+    }
+
+    function renderFileList() {
+        fileList.innerHTML = '<h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Selected Files</h3>';
+        selectedFiles.forEach(file => {
+            const size = (file.size / (1024*1024)).toFixed(2);
+            fileList.innerHTML += `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <div class="flex items-center gap-3 truncate">
+                        <svg class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <span class="font-medium text-gray-700 truncate">${file.name}</span>
+                    </div>
+                    <span class="text-sm text-gray-500 whitespace-nowrap">${size} MB</span>
+                </div>
+            `;
+        });
+        fileList.classList.remove('hidden');
+    }
+
+    uploadBtn.addEventListener('click', async () => {
+        if (selectedFiles.length === 0) return;
+        
+        document.getElementById('resultPanel').classList.remove('hidden');
+        document.getElementById('progressContainer').classList.remove('hidden');
+        optionsPanel.classList.add('hidden');
+        dropzone.classList.add('hidden');
+        fileList.classList.add('hidden');
+
+        const expiry = document.getElementById('expiryTime').value;
+        const pwd = document.getElementById('password').value;
+
+        try {
+            // 1. Create Session
+            const sessionRes = await fetch('/api/transfers/create/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ expiry_minutes: expiry, password: pwd })
+            });
+            const sessionData = await sessionRes.json();
+            const code = sessionData.transfer_code;
+
+            // Connect Websocket for upload progress
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const ws = new WebSocket(`${protocol}//${window.location.host}/ws/transfer/${code}/`);
+
+            // 2. Upload Files sequentially or parallel
+            let uploaded = 0;
+            for(let i=0; i<selectedFiles.length; i++) {
+                const formData = new FormData();
+                formData.append('file', selectedFiles[i]);
+                formData.append('transfer_code', code);
+                
+                await fetch('/api/files/upload/', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                uploaded++;
+                const p = Math.round((uploaded / selectedFiles.length) * 100);
+                document.getElementById('progressBar').style.width = p + '%';
+                
+                if(ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({progress: p, file_name: selectedFiles[i].name, action: 'upload'}));
+                }
+            }
+
+            // Upload complete
+            document.getElementById('statusText').innerText = "Transfer Ready!";
+            document.getElementById('progressContainer').classList.add('hidden');
+            document.getElementById('codeDisplay').classList.remove('hidden');
+            document.getElementById('transferCode').innerText = code;
+            
+            document.getElementById('copyCodeBtn').onclick = () => {
+                navigator.clipboard.writeText(code);
+                document.getElementById('copyCodeBtn').innerText = "Copied!";
+                setTimeout(() => document.getElementById('copyCodeBtn').innerText = "Copy Code", 2000);
+            };
+
+        } catch(err) {
+            console.error(err);
+            document.getElementById('statusText').innerText = "Upload failed. Please try again.";
+            document.getElementById('statusText').classList.add('text-red-500');
+        }
+    });
+
+</script>
+{% endblock %}

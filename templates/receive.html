@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Receive Files - ShareJet{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto w-full mt-16">
+    <div class="bg-white rounded-3xl shadow-lg border border-gray-100 p-8 sm:p-12 text-center relative overflow-hidden">
+        
+        <div class="absolute -top-10 -right-10 w-32 h-32 bg-brand-light rounded-full opacity-10"></div>
+        <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-brand rounded-full opacity-10"></div>
+        
+        <h2 class="text-3xl font-bold text-gray-800 mb-4 relative z-10">Receive Files</h2>
+        <p class="text-gray-500 mb-8 relative z-10">Enter the 6-digit code to download your files instantly.</p>
+        
+        <div class="relative z-10 space-y-6">
+            <div class="flex justify-center gap-2" id="codeInputs">
+                <!-- 6 input boxes for the code -->
+                <input type="text" maxlength="1" class="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-brand uppercase transition-colors" data-index="0">
+                <input type="text" maxlength="1" class="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-brand uppercase transition-colors" data-index="1">
+                <input type="text" maxlength="1" class="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-brand uppercase transition-colors" data-index="2">
+                <span class="text-2xl font-bold text-gray-300 self-center">-</span>
+                <input type="text" maxlength="1" class="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-brand uppercase transition-colors" data-index="3">
+                <input type="text" maxlength="1" class="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-brand uppercase transition-colors" data-index="4">
+                <input type="text" maxlength="1" class="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-brand focus:ring-brand uppercase transition-colors" data-index="5">
+            </div>
+
+            <p id="errorMessage" class="text-red-500 text-sm hidden font-medium"></p>
+            
+            <button id="receiveBtn" class="w-full bg-brand text-white font-bold text-lg rounded-xl py-4 shadow-md hover:bg-brand-dark hover:shadow-lg transition-all flex items-center justify-center gap-2" disabled>
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                Find Files
+            </button>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const inputs = document.querySelectorAll('#codeInputs input');
+    const receiveBtn = document.getElementById('receiveBtn');
+    const errorMessage = document.getElementById('errorMessage');
+
+    inputs.forEach((input, index) => {
+        input.addEventListener('input', (e) => {
+            const val = e.target.value;
+            if(val.length === 1 && index < inputs.length - 1) {
+                inputs[index+1].focus();
+            }
+            checkCodeCompletion();
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if(e.key === 'Backspace' && e.target.value === '' && index > 0) {
+                inputs[index-1].focus();
+            }
+        });
+
+        // Handle paste event for the 6-digit code
+        input.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pastedText = e.clipboardData.getData('text').replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase();
+            
+            for(let i=0; i<pastedText.length && i<inputs.length; i++) {
+                inputs[i].value = pastedText[i];
+            }
+            
+            if (pastedText.length > 0 && pastedText.length <= inputs.length) {
+                const nextIndex = pastedText.length === inputs.length ? inputs.length - 1 : pastedText.length;
+                inputs[nextIndex].focus();
+            }
+            checkCodeCompletion();
+        });
+    });
+
+    function checkCodeCompletion() {
+        let code = '';
+        inputs.forEach(input => code += input.value);
+        if(code.length === 6) {
+            receiveBtn.disabled = false;
+            receiveBtn.classList.remove('opacity-50');
+        } else {
+            receiveBtn.disabled = true;
+            receiveBtn.classList.add('opacity-50');
+        }
+    }
+    
+    // Initial check
+    checkCodeCompletion();
+
+    receiveBtn.addEventListener('click', async () => {
+        let code = '';
+        inputs.forEach(input => code += input.value);
+        code = code.toUpperCase();
+        
+        receiveBtn.innerText = 'Searching...';
+        receiveBtn.disabled = true;
+        errorMessage.classList.add('hidden');
+
+        try {
+            const response = await fetch(`/api/files/download/${code}/`);
+            if (response.ok) {
+                // If the code is correct, redirect to the download preview page
+                window.location.href = `/download/${code}/`;
+            } else {
+                const data = await response.json();
+                errorMessage.innerText = data.error || 'Invalid or expired code.';
+                errorMessage.classList.remove('hidden');
+                receiveBtn.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg> Find Files`;
+                receiveBtn.disabled = false;
+            }
+        } catch (error) {
+            errorMessage.innerText = 'Network error. Please try again.';
+            errorMessage.classList.remove('hidden');
+            receiveBtn.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg> Find Files`;
+            receiveBtn.disabled = false;
+        }
+    });
+
+</script>
+{% endblock %}

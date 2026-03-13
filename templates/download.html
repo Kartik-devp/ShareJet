@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Download Files - ShareJet{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto w-full mt-10">
+    <div class="bg-white rounded-3xl shadow-lg border border-gray-100 p-8 sm:p-12 text-center" id="downloadPanel">
+        
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">Ready to Download</h2>
+        <p class="text-gray-500 mb-8" id="fileInfoText">Your files are ready.</p>
+
+        <!-- Password Panel -->
+        <div id="passwordPanel" class="hidden mb-8">
+            <p class="text-gray-600 mb-4 font-medium">This transfer is password protected.</p>
+            <div class="flex gap-2">
+                <input type="password" id="passwordInput" placeholder="Enter Password" class="flex-1 border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-brand focus:ring-brand transition-colors">
+                <button id="verifyBtn" class="bg-brand text-white font-bold px-6 py-3 rounded-xl hover:bg-brand-dark transition-colors">Unlock</button>
+            </div>
+            <p id="passwordError" class="text-red-500 text-sm mt-2 hidden"></p>
+        </div>
+
+        <!-- Files List -->
+        <div id="filesList" class="space-y-4 mb-8 hidden">
+            <!-- Populated by JS -->
+        </div>
+
+        <button id="downloadAllBtn" class="w-full bg-brand text-white font-bold text-lg rounded-xl py-4 shadow-md hover:bg-brand-dark hover:shadow-lg transition-all hidden items-center justify-center gap-2">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            Download All
+        </button>
+        
+        <div id="progressContainer" class="w-full bg-gray-200 rounded-full h-2.5 mb-6 hidden mt-6">
+            <div class="bg-brand h-2.5 rounded-full transition-all duration-300" id="progressBar" style="width: 0%"></div>
+        </div>
+        <p id="statusText" class="text-brand font-medium mt-2 hidden">Downloading...</p>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const code = "{{ code }}";
+    const passwordPanel = document.getElementById('passwordPanel');
+    const filesList = document.getElementById('filesList');
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
+    let sessionPassword = null;
+
+    async function fetchFiles(pwd = null) {
+        try {
+            const res = await fetch(`/api/files/download/${code}/`);
+            if (res.status === 401) {
+                // If the API was returning 401 for password, we would show pass panel
+                // Currently our API returns 200 but doesn't handle password securely yet just an example
+            }
+            if (!res.ok) {
+                document.getElementById('fileInfoText').innerText = "Session expired or invalid code.";
+                return;
+            }
+            
+            const files = await res.json();
+            
+            if (files.length > 0) {
+                document.getElementById('fileInfoText').innerText = `${files.length} file(s) found.`;
+                filesList.innerHTML = '';
+                files.forEach(f => {
+                    const size = (f.file_size / (1024*1024)).toFixed(2);
+                    filesList.innerHTML += `
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <div class="flex items-center gap-3 truncate">
+                                <svg class="w-8 h-8 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                <div>
+                                    <p class="font-medium text-gray-800 text-left truncate">${f.file_name}</p>
+                                    <p class="text-xs text-gray-400 text-left">${size} MB &middot; ${f.file_type}</p>
+                                </div>
+                            </div>
+                            <!-- Assuming file url is handled correctly or we generate a download link -->
+                            <a href="/media/${f.file_name}" download class="text-brand hover:text-brand-dark p-2 rounded-full hover:bg-brand-light/10 transition-colors">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            </a>
+                        </div>
+                    `;
+                });
+                
+                filesList.classList.remove('hidden');
+                downloadAllBtn.classList.remove('hidden');
+                downloadAllBtn.classList.add('flex');
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    // Call on load
+    fetchFiles();
+
+    // WebSockets for download progress (mocked for now, if backend triggers it)
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws/transfer/${code}/`);
+    
+    ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        if (data.action === 'download' || data.action === 'upload') {
+            document.getElementById('progressContainer').classList.remove('hidden');
+            document.getElementById('statusText').classList.remove('hidden');
+            document.getElementById('progressBar').style.width = data.progress + '%';
+            if(data.progress == 100) {
+                setTimeout(() => {
+                    document.getElementById('progressContainer').classList.add('hidden');
+                    document.getElementById('statusText').classList.add('hidden');
+                }, 2000);
+            }
+        }
+    };
+
+    downloadAllBtn.addEventListener('click', () => {
+        // Trigger generic download or notify server
+        document.getElementById('progressContainer').classList.remove('hidden');
+        document.getElementById('statusText').classList.remove('hidden');
+        document.getElementById('statusText').innerText = "Downloading...";
+        
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({progress: 10, action: 'download'}));
+            // Complete simulation
+            let p = 10;
+            const int = setInterval(() => {
+                p += 15;
+                if(p >= 100) {
+                    p = 100;
+                    clearInterval(int);
+                }
+                ws.send(JSON.stringify({progress: p, action: 'download'}));
+            }, 500);
+        }
+    });
+
+</script>
+{% endblock %}

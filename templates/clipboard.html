@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}ShareJet - Clipboard{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto w-full mt-10">
+    <div class="bg-white rounded-3xl shadow-lg border border-gray-100 p-8">
+        
+        <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800">Clipboard Sync</h2>
+                <p class="text-gray-500 mt-1">Share text between devices in real-time.</p>
+            </div>
+            <div class="text-right">
+                <span class="block text-sm text-gray-400">Session Code</span>
+                <span class="text-2xl font-mono font-bold text-brand" id="sessionCodeDisplay">---</span>
+            </div>
+        </div>
+
+        <!-- Join / Create Section -->
+        <div id="joinSection" class="flex flex-col sm:flex-row gap-4 mb-8">
+            <button id="createSessionBtn" class="flex-1 bg-gray-100 text-gray-800 font-semibold py-4 rounded-xl hover:bg-gray-200 transition-colors">
+                Create New Session
+            </button>
+            <div class="flex-1 flex gap-2">
+                <input type="text" id="joinCodeInput" placeholder="Enter 6-digit code" class="w-full border border-gray-300 rounded-xl px-4 font-mono text-center uppercase focus:ring-brand focus:border-brand">
+                <button id="joinSessionBtn" class="bg-brand text-white font-semibold px-6 py-4 rounded-xl hover:bg-brand-dark transition-colors">
+                    Join
+                </button>
+            </div>
+        </div>
+
+        <!-- Clipboard Area (Hidden initially) -->
+        <div id="clipboardArea" class="hidden space-y-4">
+            <div class="relative">
+                <textarea id="clipboardText" rows="10" placeholder="Type or paste text here to share instantly..." class="w-full border-2 border-gray-200 rounded-2xl p-6 text-gray-800 resize-none focus:border-brand focus:ring-0 transition-colors text-lg shadow-inner"></textarea>
+                
+                <div class="absolute bottom-4 right-4 flex gap-2">
+                    <button id="clearBtn" class="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-red-500 hover:border-red-200 transition-all shadow-sm" title="Clear">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                    <button id="copyToClipboardBtn" class="px-4 py-2 bg-gray-800 text-white rounded-lg flex items-center gap-2 hover:bg-gray-900 transition-all shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                        Copy
+                    </button>
+                </div>
+            </div>
+            
+            <p class="text-sm text-center text-green-600 font-medium hidden" id="syncStatus">
+                <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1 animate-pulse"></span>
+                Connected & Synchronized
+            </p>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let ws = null;
+    let currentSessionCode = null;
+
+    const createBtn = document.getElementById('createSessionBtn');
+    const joinBtn = document.getElementById('joinSessionBtn');
+    const joinCodeInput = document.getElementById('joinCodeInput');
+    const displayCode = document.getElementById('sessionCodeDisplay');
+    const clipboardArea = document.getElementById('clipboardArea');
+    const joinSection = document.getElementById('joinSection');
+    const clipboardText = document.getElementById('clipboardText');
+    const syncStatus = document.getElementById('syncStatus');
+
+    createBtn.addEventListener('click', async () => {
+        try {
+            const res = await fetch('/api/transfers/create/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ expiry_minutes: 1440 })
+            });
+            const data = await res.json();
+            currentSessionCode = data.transfer_code;
+            connectWebSocket(currentSessionCode);
+        } catch (e) {
+            alert('Failed to create session');
+        }
+    });
+
+    joinBtn.addEventListener('click', () => {
+        const code = joinCodeInput.value.toUpperCase();
+        if(code.length === 6) {
+            currentSessionCode = code;
+            connectWebSocket(currentSessionCode);
+        } else {
+            alert('Please enter a valid 6-digit code');
+        }
+    });
+
+    function connectWebSocket(code) {
+        displayCode.innerText = code;
+        joinSection.classList.add('hidden');
+        clipboardArea.classList.remove('hidden');
+        syncStatus.classList.remove('hidden');
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${window.location.host}/ws/clipboard/${code}/`);
+
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.content !== undefined && data.content !== clipboardText.value) {
+                clipboardText.value = data.content;
+            }
+        };
+
+        ws.onclose = () => {
+            syncStatus.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-red-500 mr-1"></span> Disconnected';
+            syncStatus.classList.replace('text-green-600', 'text-red-500');
+        };
+    }
+
+    let timeout = null;
+    clipboardText.addEventListener('input', () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                
+                // Call the API to save it persistently
+                fetch('/api/transfers/clipboard/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ transfer_code: currentSessionCode, content: clipboardText.value })
+                });
+
+                // Broadcast directly to others
+                ws.send(JSON.stringify({ content: clipboardText.value }));
+            }
+        }, 300); // 300ms debounce
+    });
+
+    document.getElementById('copyToClipboardBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText(clipboardText.value);
+        const originalText = document.getElementById('copyToClipboardBtn').innerHTML;
+        document.getElementById('copyToClipboardBtn').innerHTML = 'Copied!';
+        setTimeout(() => document.getElementById('copyToClipboardBtn').innerHTML = originalText, 2000);
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+        clipboardText.value = '';
+        if(ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ content: '' }));
+        }
+    });
+
+</script>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - ShareJet{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto w-full mt-20">
+    <div class="bg-white rounded-3xl shadow-lg border border-gray-100 p-8 sm:p-12">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-800">Welcome Back</h2>
+            <p class="text-gray-500 mt-2">Sign in to manage your file transfers.</p>
+        </div>
+        
+        <form method="post" action="{% url 'login' %}" class="space-y-6">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input type="text" name="username" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-brand focus:ring-brand transition-colors" required>
+            </div>
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                </div>
+                <input type="password" name="password" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-brand focus:ring-brand transition-colors" required>
+            </div>
+            
+            <button type="submit" class="w-full bg-brand text-white font-bold px-6 py-4 rounded-xl hover:bg-brand-dark transition-colors shadow-md">
+                Sign In
+            </button>
+        </form>
+        
+        <p class="text-center text-sm text-gray-500 mt-8">
+            Don't have an account? <a href="{% url 'register' %}" class="text-brand font-semibold hover:underline">Sign Up</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

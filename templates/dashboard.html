@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - ShareJet{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto w-full mt-10">
+    <div class="bg-white rounded-3xl shadow-lg border border-gray-100 p-8">
+        <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800">My Transfers</h2>
+                <p class="text-gray-500 mt-1">Manage your shared files and history.</p>
+            </div>
+            <a href="{% url 'send' %}" class="bg-brand text-white font-semibold px-6 py-3 rounded-xl hover:bg-brand-dark transition-colors">
+                New Transfer
+            </a>
+        </div>
+
+        <!-- Temporary Hardcoded List for Demo -->
+        <div class="space-y-4">
+            <div class="flex items-center justify-between p-4 border border-gray-100 rounded-xl hover:shadow-sm transition-shadow">
+                <div>
+                    <h3 class="font-bold text-lg text-brand">AX52KJ</h3>
+                    <p class="text-sm text-gray-400">Created today &middot; Expires in 1 hour</p>
+                </div>
+                <div class="text-right">
+                    <p class="font-medium text-gray-800 text-sm">2 Files (45 MB)</p>
+                    <p class="text-xs text-gray-500 mt-1">0 Downloads</p>
+                </div>
+            </div>
+            
+            <p class="text-center text-gray-500 py-10">More transfers will appear here as you create them.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
